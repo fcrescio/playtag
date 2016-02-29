@@ -89,8 +89,10 @@ class SvfActions(object):
 
     def Shift(self, data):
         #print "\n\nShifting\n\n"
-        ok = data.header.length == 0 and data.trailer.length == 0
-        assert ok, "Need to upgrade to allow multiples in chain"
+	print data.header
+	print data.trailer
+        #ok = data.header.length == 0 and data.trailer.length == 0
+        #assert ok, "Need to upgrade to allow multiples in chain"
 
         prevstate = data.prevstate
         endstate = data.endstate
@@ -98,9 +100,16 @@ class SvfActions(object):
         assert prevstate == self.curstate
         self.curstate = endstate
 
+	header = data.header
+	trailer = data.trailer
         data = data.data
         length = data.length
-        tdo, tdomask, tdi = data.TDO, data.MASK, data.TDI
+	print "length %d"%(length)
+        #tdo, tdomask, tdi = data.TDO, data.MASK, data.TDI
+        tdo, tdomask = data.TDO, data.MASK
+	#data.TDI.head(header.TDI)
+	#data.TDI.trail(trailer.TDI)
+	tdi = data.TDI
         smallxfer = length <= 128
         if smallxfer:
             for info in (tdo, tdomask, tdi):
@@ -129,6 +138,12 @@ class SvfActions(object):
                 template()
             return
 
+	groupsize = 50
+	if len(tdi.data) > groupsize:
+		newtdi = []
+		for i in range((len(tdi.data)+groupsize-1)/groupsize):
+			newtdi.append(''.join(tdi.data[groupsize*i:groupsize*(i+1)]))
+		tdi.data = newtdi
         numchunks = len(tdi.data)
         assert numchunks
         if numchunks == 1:
@@ -147,6 +162,7 @@ class SvfActions(object):
         stuff = zip([prevstate] + partial, partial + [endstate], reversed(tdi.data))
         bitsleft = length
         for prevstate, endstate, data in stuff:
+	    print "bitsleft %d"%(bitsleft)
             length = min(len(data) * 4, bitsleft)
             bitsleft -= length
             key = prevstate, shiftstate, endstate, length

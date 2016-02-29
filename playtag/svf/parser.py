@@ -56,6 +56,16 @@ class ParseSVF(object):
         def __repr__(self):
             return str(self)
 
+	def head(self, dstream):
+	    if dstream.length:
+	     self.length = self.length + dstream.length
+	     self.data = dstream.data + self.data
+
+	def trail(self, dstream):
+	    if dstream.length:
+	     self.length = self.length + dstream.length
+	     self.data = self.data + dstream.data
+
 
     timing = dict(TCK=0, SCK=1, SEC=2)
     paramtypes = 'MASK SMASK TDI TDO'.split()
