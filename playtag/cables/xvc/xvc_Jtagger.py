@@ -28,7 +28,7 @@ class Jtagger(TemplateStrings.mix_me_in()):
         #create an INET, STREAMing socket
         #self.s.connect(("sbc-tbed-ftk-05", 2543))
         #self.s.connect(("pc-tbed-pub-05", 2543))
-        self.s.connect(("134.158.155.242", 2542))
+        self.s.connect((devname.CABLE_NAME, 2542))
         data = StringIO.StringIO() 
         data.write(b"shift:")
         numbits = 8
