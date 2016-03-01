@@ -89,8 +89,6 @@ class SvfActions(object):
 
     def Shift(self, data):
         #print "\n\nShifting\n\n"
-	print data.header
-	print data.trailer
         #ok = data.header.length == 0 and data.trailer.length == 0
         #assert ok, "Need to upgrade to allow multiples in chain"
 
@@ -103,13 +101,8 @@ class SvfActions(object):
 	header = data.header
 	trailer = data.trailer
         data = data.data
-        length = data.length
-	print "length %d"%(length)
-        #tdo, tdomask, tdi = data.TDO, data.MASK, data.TDI
-        tdo, tdomask = data.TDO, data.MASK
-	#data.TDI.head(header.TDI)
-	#data.TDI.trail(trailer.TDI)
-	tdi = data.TDI
+        length = data.length + header.length + trailer.length
+        tdo, tdomask, tdi = data.TDO, data.MASK, data.TDI
         smallxfer = length <= 128
         if smallxfer:
             for info in (tdo, tdomask, tdi):
@@ -123,6 +116,15 @@ class SvfActions(object):
             tdomask = int(''.join(tdomask.data), 16)
             tdo     = int(''.join(tdo.data), 16)
             tdi     = int(''.join(tdi.data), 16)
+            if header.length:
+                header_int = int(''.join(header.TDI.data), 16)
+            else:
+                header_int = 0
+            if trailer.length:
+                trailer_int = int(''.join(trailer.TDI.data), 16)
+            else:
+                trailer_int = 0
+            tdi = header_int | (tdi<<header.length) | (trailer_int<<(data.length+header.length))
             key     = prevstate, shiftstate, endstate, length, tdi
             template = cache.get(key)
             if template is None:
@@ -134,11 +136,12 @@ class SvfActions(object):
             if self.realdriver:
                 result = template().next()
                 assert result & tdomask == tdo & tdomask, (result, tdo)
+                print("Checked TDO: %x %x"%(result,tdo))
             else:
                 template()
             return
 
-	groupsize = 50
+	groupsize = 100
 	if len(tdi.data) > groupsize:
 		newtdi = []
 		for i in range((len(tdi.data)+groupsize-1)/groupsize):
@@ -156,15 +159,39 @@ class SvfActions(object):
                 op(length)
                 template.update(endstate)
                 #print template.states, template.tms, template.tdi, template.tdo
-            template([int(tdi.data[0], 16)])
+            tdi     = int(''.join(tdi.data), 16)
+            if header.length:
+                header_int = int(''.join(header.TDI.data), 16)
+            else:
+                header_int = 0
+            if trailer.length:
+                trailer_int = int(''.join(trailer.TDI.data), 16)
+            else:
+                trailer_int = 0
+            tdi = header_int | (tdi<<header.length) | (trailer_int<<(data.length+header.length))
+            #tdi = trailer_int | (tdi<<trailer.length) | (header_int<<(data.length+trailer.length))
+            template([tdi])
             return
         partial = [shiftstate] * (numchunks - 1)
         stuff = zip([prevstate] + partial, partial + [endstate], reversed(tdi.data))
         bitsleft = length
         for prevstate, endstate, data in stuff:
 	    print "bitsleft %d"%(bitsleft)
-            length = min(len(data) * 4, bitsleft)
-            bitsleft -= length
+            if bitsleft == length and header.length:
+                length = len(data) * 4 + header.length
+                header_int = int(''.join(header.TDI.data), 16)
+                data = int(data, 16)
+                data = header_int | data<<header.length
+            elif bitsleft - len(data)*4 <= 0 and trailer.length:
+                trailer_int = int(''.join(trailer.TDI.data), 16)
+                data_len = len(data)
+                data = int(data, 16)
+                data = data | trailer_int<<(data_len)
+                length = bitsleft + trailer.length
+            else:
+                length = min(len(data) * 4, bitsleft)
+                data = int(data, 16)
+                
             key = prevstate, shiftstate, endstate, length
             template = cache.get(key)
             if template is None:
@@ -175,7 +202,8 @@ class SvfActions(object):
                 op(length, adv=adv)
                 if adv:
                     template.update(endstate)
-            template([int(data, 16)])
+            template([data])
+            bitsleft -= length
 
 if dotest:
     from time import time

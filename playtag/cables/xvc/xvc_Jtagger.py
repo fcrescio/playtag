@@ -20,7 +20,7 @@ def debug_dump(f, title, data, numbytes):
 
 class Jtagger(TemplateStrings.mix_me_in()):
     maxbits=22987852800
-    chunksize=1024
+    chunksize=2048
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __init__(self, devname, maxbits=2**22):
@@ -103,7 +103,10 @@ class Jtagger(TemplateStrings.mix_me_in()):
 	for chunk in range(chunks):
             data = StringIO.StringIO() 
             #data = BytesIO() 
-            data.write(b"shift:")
+            if usetdo:
+                data.write(b"shift:")
+            else:
+                data.write(b"shift;")                
 
             # comment next line
             #numbits = 16
@@ -142,14 +145,18 @@ class Jtagger(TemplateStrings.mix_me_in()):
             self.s.send(data.getvalue())
             #print "S: "
 
-            tdo_fromXVC = self.s.recv(mynumbytes)
-            #print "got TDO "
-            #print tdo_fromXVC
-            for i in range(0, mynumbytes):
-                ndigi=8
-                if i == numbytes-1:
-                    ndigi = 8-leftpad
-                out_data.write("%s"%(('{0:0%ib}'%ndigi).format(ord(tdo_fromXVC[i]))[::-1]))
+	    toread = mynumbytes
+	    while toread > 0:
+            	tdo_fromXVC = self.s.recv(toread)
+            	#print "got TDO "
+		print("%d %d"%(mynumbytes,len(tdo_fromXVC)))
+		toread = toread - len(tdo_fromXVC)
+                if usetdo:
+                    for i in range(0, len(tdo_fromXVC)):
+                	ndigi=8
+                	if i == numbytes-1:
+                    		ndigi = 8-leftpad
+                	out_data.write("%s"%(('{0:0%ib}'%ndigi).format(ord(tdo_fromXVC[i]))[::-1]))
 
         #print out_data.getvalue()
         #print 'TDO',
