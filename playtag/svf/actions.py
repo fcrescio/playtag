@@ -135,8 +135,8 @@ class SvfActions(object):
                 template.update(endstate)
             if self.realdriver:
                 result = template().next()
-                assert result & tdomask == tdo & tdomask, (result, tdo)
                 print("Checked TDO: %x %x"%(result,tdo))
+                assert result & tdomask == tdo & tdomask, (result, tdo)
             else:
                 template()
             return
