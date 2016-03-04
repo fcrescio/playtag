@@ -16,6 +16,8 @@ Copyright (C) 2013 by Patrick Maupin.  All rights reserved.
 License information at: http://playtag.googlecode.com/svn/trunk/LICENSE.txt
 '''
 
+import collections
+
 dotest = __name__ == '__main__'
 if dotest:
     import sys
@@ -73,7 +75,8 @@ class SvfActions(object):
         runstate = data.runstate
         assert prevstate == self.curstate
         self.curstate = endstate
-        assert data.secs == [None, None]
+        if not (data.secs == [None, None]):
+		data.numclocks = 10000
         numclocks = data.numclocks * (1 if data.use_sck else self.freqmult)
         key = numclocks, prevstate, runstate, endstate
         cache = self.statecache
@@ -91,9 +94,13 @@ class SvfActions(object):
         #print "\n\nShifting\n\n"
         #ok = data.header.length == 0 and data.trailer.length == 0
         #assert ok, "Need to upgrade to allow multiples in chain"
+	print data.header
+	print data.trailer
 
         prevstate = data.prevstate
         endstate = data.endstate
+	print "endstate"
+	print endstate
         shiftstate = data.state
         assert prevstate == self.curstate
         self.curstate = endstate
@@ -102,6 +109,8 @@ class SvfActions(object):
 	trailer = data.trailer
         data = data.data
         length = data.length + header.length + trailer.length
+	BypassInfo = collections.namedtuple('BypassInfo', 'prev_ir prev_dr next_ir next_dr')
+        bypass_info = BypassInfo(header.length * '1', header.length * '0', trailer.length * '1', trailer.length * '0')
         tdo, tdomask, tdi = data.TDO, data.MASK, data.TDI
         smallxfer = length <= 128
         if smallxfer:
@@ -135,8 +144,9 @@ class SvfActions(object):
                 template.update(endstate)
             if self.realdriver:
                 result = template().next()
+                print("Checked TDO: %d %x %x"%(length,result,tdo))
+		result = result>>header.length
                 assert result & tdomask == tdo & tdomask, (result, tdo)
-                print("Checked TDO: %x %x"%(result,tdo))
             else:
                 template()
             return
@@ -171,7 +181,13 @@ class SvfActions(object):
             tdi = header_int | (tdi<<header.length) | (trailer_int<<(data.length+header.length))
             #tdi = trailer_int | (tdi<<trailer.length) | (header_int<<(data.length+trailer.length))
             template([tdi])
+	    if shiftstate == JtagTemplate.shift_ir:
+		print "Shift IR!"
+		print("%x"%(tdi))
+		print prevstate
+		print endstate
             return
+
         partial = [shiftstate] * (numchunks - 1)
         stuff = zip([prevstate] + partial, partial + [endstate], reversed(tdi.data))
         bitsleft = length
