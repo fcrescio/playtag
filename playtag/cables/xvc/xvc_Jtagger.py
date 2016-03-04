@@ -160,7 +160,7 @@ class Jtagger(TemplateStrings.mix_me_in()):
 
         #print out_data.getvalue()
         #print 'TDO',
-        #pprint.pprint(out_data.getvalue())
+        pprint.pprint(out_data.getvalue())
         return out_data.getvalue()[::-1]
         #out_data = StringIO.StringIO() 
         #len_tdo=len(tdo_fromXVC)

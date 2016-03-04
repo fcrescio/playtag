@@ -146,6 +146,7 @@ class SvfActions(object):
                 result = template().next()
                 print("Checked TDO: %d %x %x"%(length,result,tdo))
 		result = result>>header.length
+                print("Checked TDO: %x %x"%(result,tdo))
                 assert result & tdomask == tdo & tdomask, (result, tdo)
             else:
                 template()
