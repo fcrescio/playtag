@@ -156,7 +156,7 @@ def calcpaths():
             for mid, firstseq in subdict.iteritems():
                 for end, lastseq in dict0[mid].iteritems():
                     path = start, end
-                    if path in undone:
+                    if path in undone and mid != states.reset:
                         undone.remove(path)
                         sequences[start][end] = newdict[end] = firstseq + lastseq
             if newdict:
