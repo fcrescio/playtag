@@ -8,6 +8,7 @@ import socket
 from itertools import izip
 import binascii
 import sys
+import re
 
 def showdevs():
     print("showdevs xvc call")
@@ -26,9 +27,10 @@ class Jtagger(TemplateStrings.mix_me_in()):
     def __init__(self, devname, maxbits=2**22):
 	print("xvc __init__ call")
         #create an INET, STREAMing socket
-        #self.s.connect(("sbc-tbed-ftk-05", 2543))
-        #self.s.connect(("pc-tbed-pub-05", 2543))
-        self.s.connect((devname.CABLE_NAME, 2542))
+        host = re.sub(":.*","",devname.CABLE_NAME)
+        slot = re.sub(".*:","",devname.CABLE_NAME)
+        print("connecting to XVC on %s : %s"%(host, slot))
+        self.s.connect((host, int(slot)))
         data = StringIO.StringIO() 
         data.write(b"shift:")
         numbits = 8
@@ -80,23 +82,7 @@ class Jtagger(TemplateStrings.mix_me_in()):
         numbytes = (numbits + 7 ) / 8
         leftpad = numbytes * 8 - numbits
         print 'numbits = ',numbits
-        #print 'numbytes = ',numbytes
-        #print 'leftpad = ',leftpad
 
-        #allbits = [leftpad * 2 * '0']
-        #extend = allbits.extend
-        # izip('ABCD', 'xy') --> Ax By
-        #for x in izip(tms, tdi):
-        #    extend(x)
-        #allbits = ''.join(allbits) # Concatenate all allbits items using '' (nothing) as separator
-        #print "allbits:",allbits
-        #print "len(allbits):",len(allbits)
-        #print "numints*128:",numints*128
-        #assert len(allbits) == numints * 128
-        #allbits = [int(allbits[i:i+64],2) for i in xrange(len(allbits) - 64, -1, -64)]
-        #print "allbits:",allbits
-        #self.source[:len(allbits)] = allbits
-        #self.count.value = numbits
 	chunksize = self.chunksize
 	chunks = (numbytes + chunksize - 1)/chunksize
         out_data = StringIO.StringIO() 
